@@ -75,24 +75,19 @@ void loop()
 
 void changeState()
 {
-  long m2 = millis();
-  if (timer + probe_interval * 1000 > m2) {
+  long current_timer = millis();
+  if (timer + probe_interval * 1000 > current_timer) {
     return;
   }
 
-  timer = m2;
+  timer = current_timer;
   humidity = dht.getHumidity();
   temperature = dht.getTemperature();
 
   bool turn_off = humidity < humidity_threshold;
   bool turn_on = humidity > humidity_threshold + hysteresis;
-
-  Serial.print ("T: ");
-  Serial.print (temperature);
-  Serial.print (", H: ");
-  Serial.println (humidity);
   
-  if (force_run + run_time > m2) {
+  if (force_run + run_time > current_timer) {
     digitalWrite(RELAY, HIGH);
   }
   else if (turn_off) {
@@ -109,10 +104,10 @@ void handleRoot() {
   header += "<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.3/css/bootstrap.css\" />";
   header += "</head><body><div class=\"container\">";
   String message = "";
-  long m2 = millis();
-  bool is_on = force_run + run_time > m2;
+  long current_timer = millis();
+  bool is_on = force_run + run_time > current_timer;
   if (is_on) {
-    message = " FORCE RUN: " + String( (run_time - (m2 - force_run )) / 60 * 1000 ) + " minutes left";
+    message = " FORCE RUN: " + String( (run_time - (current_timer - force_run )) / 60 * 1000 ) + " minutes left";
   }
   server.send(200, "text/html", String(header) + "<h1>TEMP: " + String(temperature) + ", HUMIDITY: " + String(humidity) + message + "<hr /><a class=\"btn btn-light btn-lg\" href=\"/on\">ON</a> | <a class=\"btn btn-light btn-lg\" href=\"/off\">OFF</a> ");
 }
