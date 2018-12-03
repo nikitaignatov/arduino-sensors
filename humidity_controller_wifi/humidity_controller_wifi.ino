@@ -6,6 +6,7 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include "DHTesp.h"
+#include <DHTesp.h>
 
 const char* ssid =  "SSID";
 const char* pw = "PASSWORD";
@@ -29,11 +30,24 @@ ESP8266WebServer server (80);
 
 void setup()
 {
+  connectToWiFi();
+  dht.setup(DHT, DHTesp::DHT11);
+  startServer();
+}
+
+void loop()
+{
+  changeState();
+  server.handleClient();
+}
+
+void connectToWiFi() {
   Serial.begin(115200);
   Serial.println();
   Serial.println("Wifi connecting");
 
   pinMode(RELAY, OUTPUT);
+  pinMode(DHT, INPUT);
   digitalWrite(RELAY, LOW);
 
   WiFi.mode(WIFI_STA);
@@ -41,16 +55,13 @@ void setup()
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(300);
-    Serial.print(".") ;
+    Serial.print(".");
   }
-
-  Serial.println ("connected.");
-  Serial.print ("IP: ");
-
+  Serial.print(" Connected with IP: ");
   Serial.println (WiFi.localIP());
+}
 
-  dht.setup(DHT, DHTesp::DHT11);
-
+void startServer() {
   server.on("/", handleRoot);
   server.on("/on", []() {
     force_run = millis();
@@ -67,12 +78,6 @@ void setup()
   server.begin();
 }
 
-void loop()
-{
-  changeState();
-  server.handleClient();
-}
-
 void changeState()
 {
   long current_timer = millis();
@@ -86,7 +91,7 @@ void changeState()
 
   bool turn_off = humidity < humidity_threshold;
   bool turn_on = humidity > humidity_threshold + hysteresis;
-  
+
   if (force_run + run_time > current_timer) {
     digitalWrite(RELAY, HIGH);
   }
@@ -109,7 +114,15 @@ void handleRoot() {
   if (is_on) {
     message = " FORCE RUN: " + String( (run_time - (current_timer - force_run )) / 60 * 1000 ) + " minutes left";
   }
-  server.send(200, "text/html", String(header) + "<h1>TEMP: " + String(temperature) + ", HUMIDITY: " + String(humidity) + message + "<hr /><a class=\"btn btn-light btn-lg\" href=\"/on\">ON</a> | <a class=\"btn btn-light btn-lg\" href=\"/off\">OFF</a> ");
+  message =
+    String(header)
+    + "<h1>TEMP: "
+    + String(temperature)
+    + ", HUMIDITY: "
+    + String(humidity)
+    + message
+    + "<hr /><a class=\"btn btn-light btn-lg\" href=\"/on\">ON</a> | <a class=\"btn btn-light btn-lg\" href=\"/off\">OFF</a> ";
+  server.send(200, "text/html", );
 }
 
 void redirect(String location) {
